@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Paper Format Custom: Zero margins so padding 16mm 18mm controls exact paper layout -->
+    <record id="paperformat_surat_permohonan_pembayaran" model="report.paperformat">
+        <field name="name">Surat Permohonan Pembayaran A4 Exact</field>
+        <field name="default" eval="True"/>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">0</field>
+        <field name="margin_bottom">0</field>
+        <field name="margin_left">0</field>
+        <field name="margin_right">0</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">96</field>
+    </record>
+
+    <!-- Report Action -->
+    <record id="action_report_surat_permohonan_pembayaran" model="ir.actions.report">
+        <field name="name">Surat Permohonan Pembayaran</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">surat_permohonan_pembayaran.report_surat_pembayaran</field>
+        <field name="report_file">surat_permohonan_pembayaran.report_surat_pembayaran</field>
+        <field name="print_report_name">'Surat Permohonan Pembayaran - %s' % (object.name)</field>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_surat_permohonan_pembayaran"/>
+    </record>
+
+    <!-- QWeb Template Document (100% Matching HTML Style with Python Helper Safe Fallbacks) -->
+    <template id="report_surat_pembayaran_document">
+        <t t-set="doc" t-value="doc.with_context(lang=doc.partner_id.lang)"/>
+        
+        <!-- Safe Fallback Evaluators -->
+        <t t-set="dasar" t-value="doc.get_dasar_pekerjaan()"/>
+        <t t-set="bank" t-value="doc.get_bank_info()"/>
+        <t t-set="signer" t-value="doc.get_penandatangan()"/>
+        <t t-set="no_surat" t-value="doc.get_nomor_surat_permohonan()"/>
+        <t t-set="tgl_surat" t-value="doc.get_tanggal_surat_panjang()"/>
+        <t t-set="kota_surat" t-value="doc.get_kota_surat()"/>
+        <t t-set="jabatan_penerima" t-value="doc.get_jabatan_penerima()"/>
+        <t t-set="nama_instansi" t-value="doc.get_nama_instansi()"/>
+        <t t-set="uraian_pekerjaan" t-value="doc.get_uraian_pekerjaan()"/>
+        <t t-set="terbilang_total" t-value="doc.get_terbilang_total()"/>
+        <t t-set="lampiran" t-value="doc.get_lampiran_info()"/>
+
+        <div class="page" style="padding: 16mm 18mm; font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.45; color: #111111; background: #ffffff;">
+            
+            <!-- Ruang Kop Surat (27mm) sama persis dengan .kop-space -->
+            <div style="height: 27mm; margin-bottom: 14px;"></div>
+
+            <!-- Header Line: Nomor, Lampiran, Perihal & Tanggal Surat -->
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 12pt;">
+                <tr>
+                    <td style="vertical-align: top; padding: 0;">
+                        <table style="border-collapse: collapse;">
+                            <tr>
+                                <td style="width: 90px; padding: 1px 0; vertical-align: top;">Nomor</td>
+                                <td style="width: 12px; padding: 1px 0; vertical-align: top;">:</td>
+                                <td style="padding: 1px 0; vertical-align: top;"><span t-esc="no_surat"/></td>
+                            </tr>
+                            <tr>
+                                <td style="width: 90px; padding: 1px 0; vertical-align: top;">Lampiran</td>
+                                <td style="width: 12px; padding: 1px 0; vertical-align: top;">:</td>
+                                <td style="padding: 1px 0; vertical-align: top;"><span t-esc="lampiran['count_text']"/> berkas</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 90px; padding: 1px 0; vertical-align: top;">Perihal</td>
+                                <td style="width: 12px; padding: 1px 0; vertical-align: top;">:</td>
+                                <td style="padding: 1px 0; vertical-align: top;"><b><u>Permohonan Pembayaran</u></b></td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td style="vertical-align: top; text-align: right; white-space: nowrap; padding: 0;">
+                        <span t-esc="kota_surat"/>, <span t-esc="tgl_surat"/>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- Ruang Jarak Antara Header & Tujuan -->
+            <div style="height: 14px;"></div>
+
+            <!-- Kepada Yth (Tujuan Block) -->
+            <div style="margin-bottom: 18px; line-height: 1.45;">
+                <div>Kepada Yth.</div>
+                <div><b><span t-esc="jabatan_penerima"/></b></div>
+                <div><b><span t-esc="nama_instansi"/></b></div>
+                <div>di Tempat</div>
+            </div>
+
+            <!-- Body Text: Dengan hormat -->
+            <div style="text-align: justify; margin-bottom: 11px;">Dengan hormat,</div>
+
+            <!-- Body Text: Paragraf Intro -->
+            <div style="text-align: justify; margin-bottom: 11px;">
+                Sehubungan dengan telah selesainya pelaksanaan pekerjaan <b><span t-esc="uraian_pekerjaan"/></b> untuk <b><span t-esc="nama_instansi"/></b> berdasarkan <b><span t-esc="dasar['jenis']"/> Nomor <span t-esc="dasar['nomor']"/> tanggal <span t-esc="dasar['tanggal']"/></b>, bersama ini kami <b><span t-esc="doc.company_id.name or 'PT. Aston Graphindo Indonesia'"/></b> bermaksud mengajukan permohonan pembayaran atas pekerjaan tersebut dengan rincian sebagai berikut:
+            </div>
+
+            <!-- Tabel Letter Table -->
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 11px;">
+                <tr>
+                    <td style="width: 34%; padding: 1.5px 0; vertical-align: top; font-size: 12pt;">Nilai Pekerjaan</td>
+                    <td style="width: 14px; padding: 1.5px 0; vertical-align: top; font-size: 12pt;">:</td>
+                    <td style="padding: 1.5px 0; vertical-align: top; font-size: 12pt;">
+                        <b>Rp <span t-esc="'{0:,.0f}'.format(doc.amount_total or 0).replace(',', '.')"/>,-</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="width: 34%; padding: 1.5px 0; vertical-align: top; font-size: 12pt;">Terbilang</td>
+                    <td style="width: 14px; padding: 1.5px 0; vertical-align: top; font-size: 12pt;">:</td>
+                    <td style="padding: 1.5px 0; vertical-align: top; font-size: 12pt;">
+                        <i><b><span t-esc="terbilang_total"/></b></i>
+                    </td>
+                </tr>
+                <tr t-if="(doc.amount_total or 0) &gt; 2000000">
+                    <td style="width: 34%; padding: 1.5px 0; vertical-align: top; font-size: 12pt;">Potongan</td>
+                    <td style="width: 14px; padding: 1.5px 0; vertical-align: top; font-size: 12pt;">:</td>
+                    <td style="padding: 1.5px 0; vertical-align: top; font-size: 12pt;">Pajak-pajak sesuai ketentuan yang berlaku</td>
+                </tr>
+            </table>
+
+            <!-- Text Rekening -->
+            <div style="text-align: justify; margin-bottom: 11px;">Pembayaran kami mohon untuk dapat ditransfer melalui rekening berikut:</div>
+
+            <!-- Tabel Rekening -->
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 11px;">
+                <tr>
+                    <td style="width: 34%; padding: 1.5px 0; vertical-align: top; font-size: 12pt;">Nama Bank</td>
+                    <td style="width: 14px; padding: 1.5px 0; vertical-align: top; font-size: 12pt;">:</td>
+                    <td style="padding: 1.5px 0; vertical-align: top; font-size: 12pt;"><span t-esc="bank['nama_bank']"/></td>
+                </tr>
+                <tr>
+                    <td style="width: 34%; padding: 1.5px 0; vertical-align: top; font-size: 12pt;">Nomor Rekening</td>
+                    <td style="width: 14px; padding: 1.5px 0; vertical-align: top; font-size: 12pt;">:</td>
+                    <td style="padding: 1.5px 0; vertical-align: top; font-size: 12pt;"><span t-esc="bank['no_rek']"/></td>
+                </tr>
+                <tr>
+                    <td style="width: 34%; padding: 1.5px 0; vertical-align: top; font-size: 12pt;">Atas Nama</td>
+                    <td style="width: 14px; padding: 1.5px 0; vertical-align: top; font-size: 12pt;">:</td>
+                    <td style="padding: 1.5px 0; vertical-align: top; font-size: 12pt;"><span t-esc="bank['atas_nama']"/></td>
+                </tr>
+            </table>
+
+            <!-- Note Kuitansi -->
+            <div style="text-align: justify; margin-bottom: 11px;">
+                Pembayaran juga dapat dilakukan melalui rekening kami yang lain yang tercantum pada Kuitansi.
+            </div>
+
+            <!-- Lampiran -->
+            <div style="text-align: justify; margin-bottom: 11px;">Sebagai kelengkapan administrasi, bersama surat ini kami lampirkan:</div>
+            <ol style="margin: 0 0 11px 0; padding-left: 20px;">
+                <t t-foreach="lampiran['items']" t-as="item">
+                    <li style="margin-bottom: 2px;"><span t-esc="item"/></li>
+                </t>
+            </ol>
+
+            <!-- Penutup -->
+            <div style="text-align: justify; margin-bottom: 11px;">
+                Apabila terdapat kekurangan dokumen atau data yang diperlukan, mohon dapat menghubungi kami melalui kontak yang tercantum pada kop surat, atau melalui kontak salesman kami.
+            </div>
+
+            <div style="text-align: justify; margin-bottom: 11px;">
+                Demikian surat permohonan pembayaran ini kami sampaikan. Atas perhatian dan kerja sama Bapak/Ibu, kami ucapkan terima kasih.
+            </div>
+
+            <!-- Tanda Tangan (sign-block) -->
+            <div style="page-break-inside: avoid; margin-top: 18px;">
+                <div>Hormat kami,</div>
+                <div><b><span t-esc="doc.company_id.name or 'PT. Aston Graphindo Indonesia'"/></b></div>
+                <div style="height: 30mm;"></div>
+                <div><b><u><span t-esc="signer['who_sign']"/></u></b></div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Main QWeb Entry Template -->
+    <template id="report_surat_pembayaran">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="surat_permohonan_pembayaran.report_surat_pembayaran_document"/>
+            </t>
+        </t>
+    </template>
+</odoo>
