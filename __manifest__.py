@@ -29,3 +29,5 @@ Fitur:
     'application': False,
     'auto_install': False,
 }
+
+# Update: Add upgrade flag to force reload report action

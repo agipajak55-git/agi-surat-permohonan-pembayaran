@@ -20,8 +20,8 @@
         <field name="name">Surat Permohonan Pembayaran</field>
         <field name="model">sale.order</field>
         <field name="report_type">qweb-pdf</field>
-        <field name="report_name">surat_permohonan_pembayaran.report_surat_pembayaran</field>
-        <field name="report_file">surat_permohonan_pembayaran.report_surat_pembayaran</field>
+        <field name="report_name">agi_surat_permohonan_pembayaran.report_surat_pembayaran</field>
+        <field name="report_file">agi_surat_permohonan_pembayaran.report_surat_pembayaran</field>
         <field name="print_report_name">'Surat Permohonan Pembayaran - %s' % (object.name)</field>
         <field name="binding_model_id" ref="sale.model_sale_order"/>
         <field name="binding_type">report</field>
@@ -113,7 +113,7 @@
                         <i><b><span t-esc="terbilang_total"/></b></i>
                     </td>
                 </tr>
-                <tr t-if="(doc.amount_total or 0) &gt; 2000000">
+                <tr t-if="(doc.amount_total or 0) > 2000000">
                     <td style="width: 34%; padding: 1.5px 0; vertical-align: top; font-size: 12pt;">Potongan</td>
                     <td style="width: 14px; padding: 1.5px 0; vertical-align: top; font-size: 12pt;">:</td>
                     <td style="padding: 1.5px 0; vertical-align: top; font-size: 12pt;">Pajak-pajak sesuai ketentuan yang berlaku</td>
@@ -178,7 +178,7 @@
     <template id="report_surat_pembayaran">
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="doc">
-                <t t-call="surat_permohonan_pembayaran.report_surat_pembayaran_document"/>
+                <t t-call="agi_surat_permohonan_pembayaran.report_surat_pembayaran_document"/>
             </t>
         </t>
     </template>
