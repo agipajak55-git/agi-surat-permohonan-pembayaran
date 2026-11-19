@@ -1,0 +1,7 @@
+*.pyc
+__pycache__/
+*.code-workspace
+surat_permohonan_pembayaran/
+surat_permohonan_pembayaran_agi/
+surat_permohonan_pembayaran_asn/
+Tools--(ASN)*

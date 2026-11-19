@@ -61,6 +61,11 @@ def _terbilang_id(num):
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
+    tanggal_print = fields.Date(
+        string='Tanggal Print',
+        help='Tanggal yang digunakan pada Surat Permohonan Pembayaran. Jika kosong, otomatis memakai tanggal hari ini.'
+    )
+
     dasar_pekerjaan = fields.Selection([
         ('Purchase Order', 'Purchase Order'),
         ('SPK', 'SPK'),
@@ -80,6 +85,36 @@ class SaleOrder(models.Model):
         help='misal: Pengadaan Computer Supplies (Cartridge Printer)'
     )
 
+    lampirkan_faktur_pajak = fields.Boolean(
+        string='Lampirkan Faktur Pajak',
+        default=True,
+        help='Centang jika surat permohonan pembayaran menyertakan lampiran Faktur Pajak dan rincian potongan.'
+    )
+
+    pakai_meterai = fields.Boolean(
+        string='Pakai Meterai',
+        default=True,
+        help='Centang jika surat memerlukan ruang tempel meterai (30mm). Jika tidak, ruang tanda tangan 10mm.'
+    )
+
+    @api.onchange('amount_total')
+    def _onchange_amount_total_faktur_pajak(self):
+        """Otomatis memberi saran centang Faktur Pajak jika > 2jt, tetap dapat diubah manual kapan saja."""
+        if self.amount_total:
+            self.lampirkan_faktur_pajak = (self.amount_total > 2000000)
+
+    def _get_effective_surat_date(self):
+        """Mengambil tanggal surat: menggunakan tanggal_print jika diisi, jika kosong memakai hari ini."""
+        self.ensure_one()
+        d = self.tanggal_print
+        if not d:
+            return date.today()
+        if isinstance(d, str):
+            return fields.Date.from_string(d)
+        if isinstance(d, datetime):
+            return d.date()
+        return d
+
     def get_terbilang_total(self):
         """Mengembalikan teks terbilang dari amount_total dalam format Rupiah."""
         self.ensure_one()
@@ -88,20 +123,20 @@ class SaleOrder(models.Model):
 
     def get_nomor_surat_permohonan(self):
         """
-        Format nomor surat: [nomor SO]/Perm.Bayar-FA/AGI/[bulan tanggal_print]/[tahun tanggal_print]
-        Berdasarkan tanggal cetak/print (datetime.today()).
+        Format nomor surat AGI: [nomor SO]/Perm.Bayar-FA/AGI/[bulan romawi]/[tahun]
+        Bulan romawi dan tahun mengikuti field Tanggal Print (atau hari ini).
         """
         self.ensure_one()
-        dt = datetime.today()
+        dt = self._get_effective_surat_date()
         bulan_romawi = ROMAN_MONTHS[dt.month - 1]
         tahun = dt.year
         nomor_bersih = (self.name or "SO").replace("/", "-")
         return f"{nomor_bersih}/Perm.Bayar-FA/AGI/{bulan_romawi}/{tahun}"
 
     def get_tanggal_surat_panjang(self):
-        """Format tanggal surat cetak: e.g. '8 September 2026'."""
+        """Format tanggal surat cetak: e.g. '19 November 2026'."""
         self.ensure_one()
-        dt = datetime.today()
+        dt = self._get_effective_surat_date()
         return f"{dt.day} {BULAN_ID[dt.month - 1]} {dt.year}"
 
     def get_kota_surat(self):
@@ -110,8 +145,16 @@ class SaleOrder(models.Model):
         return self.company_id.city or self.company_id.partner_id.city or "Karanganyar"
 
     def get_jabatan_penerima(self):
-        """Mengembalikan jabatan penerima dari kontak partner."""
+        """Mengembalikan jabatan penerima dari opsi_penerima atau kontak partner."""
         self.ensure_one()
+        if hasattr(self, 'opsi_penerima') and self.opsi_penerima:
+            map_opsi = {
+                'kuasa': 'Kuasa Pengguna Anggaran',
+                'bendahara': 'Bendahara Pengeluaran',
+                'pejabat': 'Pejabat Pembuat Komitmen',
+            }
+            if self.opsi_penerima in map_opsi:
+                return map_opsi[self.opsi_penerima]
         p = self.partner_id
         if p.function:
             return p.function
@@ -120,7 +163,7 @@ class SaleOrder(models.Model):
         return "Pejabat Pembuat Komitmen / Bendahara"
 
     def get_nama_instansi(self):
-        """Mengembalikan nama instansi / perusahaan pelanggan."""
+        """Mengembalikan nama instansi / satuan kerja pelanggan."""
         self.ensure_one()
         p = self.partner_id
         if p.parent_id and p.parent_id.name:
@@ -148,7 +191,7 @@ class SaleOrder(models.Model):
         self.ensure_one()
         jenis = self.dasar_pekerjaan or "Purchase Order"
         nomor = self.nomor_dasar_pekerjaan or self.client_order_ref or self.origin or self.name or "-"
-        dt = self.tgl_dasar_pekerjaan or self.date_order or date.today()
+        dt = self.tgl_dasar_pekerjaan or (self.date_order and self.date_order.date()) or date.today()
         tanggal = f"{dt.day} {BULAN_ID[dt.month - 1]} {dt.year}"
         return {
             'jenis': jenis,
@@ -157,7 +200,7 @@ class SaleOrder(models.Model):
         }
 
     def get_bank_info(self):
-        """Mengambil rekening bank perusahaan dengan strip normal."""
+        """Mengambil rekening bank AGI dengan fallback default Mandiri KCP Solo Pasar Legi."""
         self.ensure_one()
         company = self.company_id
         bank_accounts = company.partner_id.bank_ids or self.env['res.partner.bank'].search([
@@ -167,22 +210,21 @@ class SaleOrder(models.Model):
         if bank_accounts:
             acc = bank_accounts[0]
             nama_bank = acc.bank_id.name if acc.bank_id else (acc.bank_name or "Mandiri")
-            nama_bank = nama_bank.replace("–", "-").replace("—", "-")
+            nama_bank = nama_bank.replace("â€“", "-").replace("â€”", "-")
             return {
                 'nama_bank': nama_bank,
                 'no_rek': acc.acc_number or "-",
-                'atas_nama': acc.acc_holder_name or company.name or "-"
+                'atas_nama': acc.acc_holder_name or company.name or "PT. Aston Graphindo Indonesia"
             }
         return {
-            'nama_bank': "Mandiri - KCP Solo Pasar Legi",
+            'nama_bank': "Mandiri – KCP Solo Pasar Legi",
             'no_rek': "138 00 0790783 0",
-            'atas_nama': company.name or "PT. Aston Graphindo Indonesia"
+            'atas_nama': "PT. Aston Graphindo Indonesia"
         }
 
     def get_penandatangan(self):
-        """Mengambil data penandatangan langsung dari field many2one 'who_sign' yang sudah ada di database."""
+        """Mengambil data penandatangan dari field who_sign, user_id, atau default Agung Jayadi."""
         self.ensure_one()
-        # Mengambil nama dari record res.users relasi many2one field who_sign
         sign_user = getattr(self, 'who_sign', False)
         if sign_user:
             nama = sign_user.name
@@ -197,20 +239,12 @@ class SaleOrder(models.Model):
 
     def get_lampiran_info(self):
         """
-        Menentukan daftar lampiran dan jumlah total berkas berdasarkan nilai SO.
-        Jika amount_total <= 2,000,000 (tidak kena Faktur Pajak), lampiran 3 berkas.
-        Jika > 2,000,000, lampiran 4 berkas.
+        Menentukan daftar lampiran dan jumlah total berkas berdasarkan checkbox lampirkan_faktur_pajak.
+        Jika dicentang: 4 (empat) berkas (termasuk Faktur Pajak).
+        Jika tidak dicentang: 3 (tiga) berkas (tanpa Faktur Pajak).
         """
         self.ensure_one()
-        total = self.amount_total or 0
-        if total <= 2000000:
-            items = [
-                "Invoice",
-                "Kuitansi",
-                "Salinan dasar pekerjaan (Purchase Order/SPK/Kontrak)"
-            ]
-            count_text = "3 (tiga)"
-        else:
+        if self.lampirkan_faktur_pajak:
             items = [
                 "Invoice",
                 "Kuitansi",
@@ -218,6 +252,13 @@ class SaleOrder(models.Model):
                 "Salinan dasar pekerjaan (Purchase Order/SPK/Kontrak)"
             ]
             count_text = "4 (empat)"
+        else:
+            items = [
+                "Invoice",
+                "Kuitansi",
+                "Salinan dasar pekerjaan (Purchase Order/SPK/Kontrak)"
+            ]
+            count_text = "3 (tiga)"
         return {
             'items': items,
             'count_text': count_text

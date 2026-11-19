@@ -1,0 +1,1246 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Generator Surat Permohonan Pembayaran</title>
+<style>
+  :root{
+    --ink: #1b2430;
+    --slate: #3c4a5e;
+    --slate-soft: #6b7688;
+    --line: #d7dce3;
+    --panel: #eef1f5;
+    --paper: #ffffff;
+    --accent: #2f5d62;
+    --accent-ink: #ffffff;
+    --danger: #a3402f;
+    --focus: #2f5d62;
+    --radius: 6px;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--panel);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  .app{
+    display: grid;
+    grid-template-columns: minmax(340px, 420px) 1fr;
+    gap: 0;
+    min-height: 100vh;
+  }
+  @media screen and (max-width: 860px){
+    .app{ grid-template-columns: 1fr; }
+    .form-panel{ max-height: none; border-right:none; border-bottom: 1px solid var(--line); }
+    .preview-panel{ padding: 20px 12px; }
+    .paper{ width: 100%; min-height: auto; padding: 14mm 10mm; font-size: 11pt; }
+    .row-with-date{ flex-direction: column; align-items: flex-start; gap: 4px; }
+    .row-with-date > div:last-child{ white-space: normal; }
+    .lbl{ width: 76px; }
+  }
+
+  /* ---------- FORM PANEL ---------- */
+  .form-panel{
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+    padding: 22px 22px 80px;
+    overflow-y: auto;
+    max-height: 100vh;
+  }
+  .form-panel h1{
+    font-size: 16px;
+    letter-spacing: 0.02em;
+    margin: 0 0 2px;
+    color: var(--ink);
+  }
+  .form-panel .sub{
+    font-size: 12.5px;
+    color: var(--slate-soft);
+    margin: 0 0 20px;
+  }
+
+  fieldset{
+    border: none;
+    padding: 0;
+    margin: 0 0 22px;
+  }
+  legend{
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    padding: 0 0 8px;
+    width: 100%;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 12px;
+  }
+  .field{
+    margin-bottom: 12px;
+  }
+  .field label{
+    display:block;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--slate);
+    margin-bottom: 4px;
+  }
+  .field .hint{
+    font-size: 11px;
+    color: var(--slate-soft);
+    margin-top: 3px;
+  }
+  .row2{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .row3{
+    display:grid;
+    grid-template-columns: 84px 1fr 1fr;
+    gap: 10px;
+  }
+  input[type=text], input[type=date], input[type=number], select, textarea{
+    width: 100%;
+    font-family: inherit;
+    font-size: 13.5px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--paper);
+    color: var(--ink);
+  }
+  textarea{ resize: vertical; min-height: 54px; }
+  input:focus, select:focus, textarea:focus{
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
+    border-color: var(--focus);
+  }
+  .terbilang-box{
+    margin-top: 6px;
+    padding: 8px 10px;
+    background: var(--paper);
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    font-size: 12.5px;
+    font-style: italic;
+    color: var(--accent);
+    min-height: 18px;
+  }
+
+  .check-item{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    font-size: 13px;
+    padding: 5px 0;
+  }
+  .check-item input{ width: auto; margin: 0; accent-color: var(--accent); }
+  .custom-item-row{
+    display:flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .custom-item-row input{ flex:1; }
+  .btn-small{
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--slate);
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  .btn-small:hover{ border-color: var(--accent); color: var(--accent); }
+  .custom-list{ margin-top: 6px; display:flex; flex-direction:column; gap:4px; }
+  .custom-list .row{
+    display:flex; align-items:center; justify-content:space-between;
+    font-size: 12.5px; background: var(--paper); border:1px solid var(--line);
+    border-radius: var(--radius); padding: 6px 10px;
+  }
+  .custom-list .row button{
+    border:none; background:none; color: var(--danger); cursor:pointer; font-size: 12px;
+  }
+
+  .actions{
+    margin-top: 8px;
+  }
+  .print-btn{
+    width: 100%;
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    border-radius: var(--radius);
+    padding: 13px 14px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+  }
+  .print-btn:hover{ filter: brightness(1.08); }
+  .word-btn{
+    width: 100%;
+    margin-top: 8px;
+    background: #375f79;
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 13.5px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+  }
+  .word-btn:hover{ filter: brightness(1.1); }
+  .reset-btn{
+    width: 100%;
+    margin-top: 8px;
+    background: transparent;
+    color: var(--slate-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 9px 14px;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+  .save-note{
+    font-size: 11px;
+    color: var(--slate-soft);
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  /* ---------- PREVIEW PANEL ---------- */
+  .preview-panel{
+    background: var(--panel);
+    padding: 36px 36px;
+    overflow-y: auto;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+  }
+  .paper{
+    width: 210mm;
+    min-height: 297mm;
+    background: var(--paper);
+    box-shadow: 0 4px 24px rgba(20,30,45,0.14), 0 1px 3px rgba(20,30,45,0.08);
+    padding: 16mm 18mm;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 12pt;
+    line-height: 1.45;
+    color: #111;
+  }
+  .kop-space{
+    border: 1px dashed #b9c2cf;
+    border-radius: 4px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .kop-space-label{
+    font-family: -apple-system, sans-serif;
+    font-size: 10.5px;
+    color: #9aa4b2;
+    letter-spacing: 0.02em;
+    padding: 0 8px;
+  }
+  .letter-head-line{
+    display:flex;
+    gap: 6px;
+    margin-bottom: 2px;
+  }
+  .lbl{ width: 90px; flex-shrink:0; }
+  .colon{ width: 12px; flex-shrink:0; }
+  .val{ flex:1; }
+  .row-with-date{
+    display:flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 20px;
+  }
+  .row-with-date .left{ display:flex; gap:6px; }
+  .row-with-date > div:last-child{ white-space: nowrap; flex-shrink: 0; }
+  .perihal-line{ margin-bottom: 18px; }
+  .to-block{ margin-bottom: 18px; }
+  .to-block div{ margin: 0; }
+  .body-text{
+    text-align: justify;
+    margin-bottom: 11px;
+  }
+  table.letter-table{
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 11px;
+  }
+  table.letter-table td{
+    padding: 1.5px 0;
+    vertical-align: top;
+    font-size: 12pt;
+  }
+  table.letter-table td.tlabel{ width: 34%; }
+  table.letter-table td.tcolon{ width: 14px; }
+  .lampiran-list{ margin: 0 0 11px; padding-left: 20px; }
+  .lampiran-list li{ margin-bottom: 2px; }
+  .sign-block{ margin-top: 18px; }
+  .sign-space{ height: 30mm; }
+  .placeholder{ color: #b8391f; }
+
+  @media print{
+    body{ background: white; }
+    .app{ display: block; }
+    .form-panel{ display:none !important; }
+    .preview-panel{
+      padding: 0;
+      display:block;
+      background: white;
+    }
+    .paper{
+      box-shadow: none;
+      width: auto;
+      min-height: auto;
+      margin: 0;
+      padding: 8mm 16mm;
+      font-size: 11pt;
+      line-height: 1.28;
+    }
+    /* Ruang kop surat/logo TETAP disediakan (tidak hilang), hanya garis panduan & label yang disembunyikan */
+    .kop-space{ border-color: transparent; margin-bottom: 8px; }
+    .kop-space-label{ display: none; }
+    .body-text{ margin-bottom: 6px; }
+    .to-block{ margin-bottom: 10px; }
+    table.letter-table{ margin-bottom: 8px; }
+    table.letter-table td{ padding: 1px 0; }
+    .sign-block, table.letter-table, .to-block{ page-break-inside: avoid; }
+    @page{ size: A4; margin: 0; }
+  }
+
+  .history-empty{ color: var(--slate-soft); font-size:13px; text-align:center; padding: 24px 4px; }
+
+  /* ---------- HISTORY MODAL ---------- */
+  .modal-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(20,30,45,0.45);
+    z-index: 1000;
+    padding: 20px;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-box{
+    background: var(--paper);
+    border-radius: 8px;
+    width: min(720px, 100%);
+    max-height: 85vh;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+  }
+  .modal-header{
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 16px 20px; border-bottom: 1px solid var(--line);
+  }
+  .modal-header h2{ margin:0; font-size:16px; color:var(--ink); }
+  .modal-close{ border:none; background:none; font-size:18px; cursor:pointer; color: var(--slate-soft); line-height:1; }
+  .modal-close:hover{ color: var(--danger); }
+  .modal-body{ padding: 14px 20px; overflow-y: auto; flex: 1; }
+  .modal-footer{ padding: 12px 20px; border-top: 1px solid var(--line); display:flex; justify-content:flex-end; }
+  .history-item{
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    display:flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 12.5px;
+  }
+  .history-item .info{ flex: 1; min-width: 0; }
+  .history-item .h-title{ font-weight:700; color: var(--ink); margin-bottom: 3px; word-break: break-word; }
+  .history-item .h-meta{ color: var(--slate-soft); font-size: 11.5px; margin-top: 1px; }
+  .history-item .badge{
+    display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px;
+    background: var(--panel); color: var(--accent); margin-left:6px; vertical-align: middle;
+  }
+  .history-item .actions-col{ display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+  .history-item .actions-col button{ white-space:nowrap; }
+
+  @media print{
+    .modal-overlay{ display:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ============ FORM PANEL ============ -->
+  <div class="form-panel">
+    <h1>Generator Surat Permohonan Pembayaran</h1>
+    <p class="sub">Isi form ini, pratinjau surat otomatis diperbarui di sebelah kanan. Terbilang dihitung otomatis dari nominal.</p>
+
+    <fieldset>
+      <legend>Ruang Kop Surat</legend>
+      <div class="field">
+        <label for="kopHeight">Tinggi Ruang Kosong di Atas (mm)</label>
+        <input type="number" id="kopHeight" min="0" max="100" step="1" value="27">
+        <div class="hint">Ruang kosong ini disediakan untuk kop surat/logo yang sudah tercetak di kertas, dan tetap disediakan saat cetak maupun saat disimpan sebagai Word. Nilai bawaan 27mm — sesuaikan (perbesar/perkecil) jika kop surat Anda berbeda tinggi.</div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Nomor &amp; Tanggal Surat</legend>
+      <div class="row3">
+        <div class="field">
+          <label for="noSurat">No.</label>
+          <input type="text" id="noSurat" value="070">
+        </div>
+        <div class="field">
+          <label for="tglSurat">Tanggal Surat</label>
+          <input type="date" id="tglSurat">
+        </div>
+        <div class="field">
+          <label for="kota">Kota</label>
+          <input type="text" id="kota" value="Karanganyar">
+        </div>
+      </div>
+      <div class="hint" id="nomorPreviewHint"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Tujuan Surat</legend>
+      <div class="field">
+        <label for="jabatanPenerima">Jabatan Penerima</label>
+        <input type="text" id="jabatanPenerima" placeholder="mis. Kepala / Bendahara / Kuasa Pengguna Anggaran">
+      </div>
+      <div class="field">
+        <label for="namaInstansi">Nama Instansi / Satuan Kerja</label>
+        <input type="text" id="namaInstansi" placeholder="mis. KPKNL Pekanbaru">
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Uraian Pekerjaan</legend>
+      <div class="field">
+        <label for="uraianPekerjaan">Uraian Pekerjaan / Barang</label>
+        <textarea id="uraianPekerjaan" placeholder="mis. Pengadaan Barang Cartridge Printer (Tinta Orimax T11F)"></textarea>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="jenisDasar">Dasar Pekerjaan</label>
+          <select id="jenisDasar">
+            <option>Purchase Order</option>
+            <option>SPK</option>
+            <option>Kontrak</option>
+            <option>Surat Pesanan</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="nomorDasar">Nomor</label>
+          <input type="text" id="nomorDasar" placeholder="nomor dokumen">
+        </div>
+      </div>
+      <div class="field">
+        <label for="tglDasar">Tanggal Dokumen Dasar</label>
+        <input type="date" id="tglDasar">
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Nilai Pekerjaan</legend>
+      <div class="field">
+        <label for="nilai">Nominal (Rp)</label>
+        <input type="number" id="nilai" min="0" step="1" placeholder="8650000">
+        <div class="terbilang-box" id="terbilangBox">— isi nominal untuk melihat terbilang —</div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Rekening Pembayaran</legend>
+      <div class="field">
+        <label for="namaBank">Nama Bank</label>
+        <input type="text" id="namaBank" value="Mandiri – KCP Solo Pasar Legi">
+      </div>
+      <div class="field">
+        <label for="noRek">Nomor Rekening</label>
+        <input type="text" id="noRek" value="138 00 0790783 0">
+      </div>
+      <div class="field">
+        <label for="atasNama">Atas Nama</label>
+        <input type="text" id="atasNama" value="PT. Aston Graphindo Indonesia">
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Lampiran</legend>
+      <div id="lampiranChecks">
+        <label class="check-item"><input type="checkbox" value="Invoice" checked> Invoice</label>
+        <label class="check-item"><input type="checkbox" value="Kuitansi" checked> Kuitansi</label>
+        <label class="check-item"><input type="checkbox" value="Faktur Pajak" checked> Faktur Pajak</label>
+        <label class="check-item"><input type="checkbox" value="Salinan dasar pekerjaan (Purchase Order/SPK/Kontrak)" checked> Salinan dasar pekerjaan</label>
+      </div>
+      <div class="custom-list" id="customLampiranList"></div>
+      <div class="custom-item-row">
+        <input type="text" id="customLampiranInput" placeholder="Tambah lampiran lain...">
+        <button class="btn-small" id="addLampiranBtn" type="button">+ Tambah</button>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Penanda Tangan</legend>
+      <div class="field">
+        <label for="penandatanganSelect">Pilih Penanda Tangan</label>
+        <select id="penandatanganSelect">
+          <option value="Agung Jayadi|Finance">Agung Jayadi - Finance</option>
+          <option value="Anton Wijaya|Direktur">Anton Wijaya - Direktur</option>
+          <option value="__custom__">+ Lainnya (ketik manual)</option>
+        </select>
+      </div>
+      <div class="row2" id="customSignerRow" style="display:none; margin-top:8px;">
+        <div class="field">
+          <label for="namaTtdCustom">Nama</label>
+          <input type="text" id="namaTtdCustom" placeholder="Nama penandatangan">
+        </div>
+        <div class="field">
+          <label for="jabatanTtdCustom">Jabatan</label>
+          <input type="text" id="jabatanTtdCustom" placeholder="Jabatan">
+        </div>
+      </div>
+      <input type="hidden" id="namaTtd" value="Agung Jayadi">
+      <input type="hidden" id="jabatanTtd" value="Finance">
+      <div class="field" style="margin-top:10px;">
+        <label class="check-item"><input type="checkbox" id="pakaiMeterai" checked> Surat ini pakai meterai (sediakan ruang tempel meterai)</label>
+        <div class="hint">Jika dicentang, ruang tanda tangan dibuat lebih lega (30mm) untuk tempel meterai. Jika tidak dicentang, ruang tanda tangan dipersempit (10mm) — cukup untuk tanda tangan saja.</div>
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <button class="print-btn" id="printBtn" type="button">🖨️ Cetak / Simpan sebagai PDF</button>
+      <button class="word-btn" id="wordBtn" type="button">📝 Simpan sebagai Word (.doc)</button>
+      <button class="btn-small" id="historyBtn" type="button" style="width:100%; margin-top:8px; padding:10px 14px;">🕘 Lihat Riwayat Surat</button>
+      <button class="reset-btn" id="resetBtn" type="button">Kosongkan isian surat spesifik</button>
+      <div class="save-note">Nama bank, rekening, tinggi kop &amp; penanda tangan tersimpan otomatis untuk surat berikutnya. Setiap surat yang dicetak/disimpan otomatis tercatat di Riwayat Surat.</div>
+    </div>
+  </div>
+
+
+  <!-- ============ PREVIEW PANEL ============ -->
+  <div class="preview-panel">
+    <div class="paper" id="paper">
+      <div class="kop-space" id="kopSpace">
+        <span class="kop-space-label">Ruang kop surat / logo perusahaan (tetap kosong saat cetak &amp; Word)</span>
+      </div>
+
+      <div class="row-with-date">
+        <div>
+          <div class="letter-head-line"><span class="lbl">Nomor</span><span class="colon">:</span><span class="val" id="pv-nomor"></span></div>
+          <div class="letter-head-line"><span class="lbl">Lampiran</span><span class="colon">:</span><span class="val" id="pv-lampiranCount"></span></div>
+          <div class="letter-head-line"><span class="lbl">Perihal</span><span class="colon">:</span><span class="val"><b><u>Permohonan Pembayaran</u></b></span></div>
+        </div>
+        <div id="pv-tanggal" style="white-space:nowrap;"></div>
+      </div>
+
+      <div style="height:14px;"></div>
+
+      <div class="to-block">
+        <div>Kepada Yth.</div>
+        <div><b id="pv-jabatanPenerima"></b></div>
+        <div><b id="pv-namaInstansi1"></b></div>
+        <div>di Tempat</div>
+      </div>
+
+      <div class="body-text">Dengan hormat,</div>
+
+      <div class="body-text" id="pv-bodyIntro"></div>
+
+      <table class="letter-table">
+        <tr><td class="tlabel">Nilai Pekerjaan</td><td class="tcolon">:</td><td id="pv-nilai"></td></tr>
+        <tr><td class="tlabel">Terbilang</td><td class="tcolon">:</td><td id="pv-terbilang"><i><b></b></i></td></tr>
+        <tr id="pv-potonganRow"><td class="tlabel">Potongan</td><td class="tcolon">:</td><td>Pajak-pajak sesuai ketentuan yang berlaku</td></tr>
+      </table>
+
+      <div class="body-text">Pembayaran kami mohon untuk dapat ditransfer melalui rekening berikut:</div>
+
+      <table class="letter-table">
+        <tr><td class="tlabel">Nama Bank</td><td class="tcolon">:</td><td id="pv-namaBank"></td></tr>
+        <tr><td class="tlabel">Nomor Rekening</td><td class="tcolon">:</td><td id="pv-noRek"></td></tr>
+        <tr><td class="tlabel">Atas Nama</td><td class="tcolon">:</td><td id="pv-atasNama"></td></tr>
+      </table>
+
+      <div class="body-text">Pembayaran juga dapat dilakukan melalui rekening kami yang lain yang tercantum pada Kuitansi.</div>
+
+      <div class="body-text">Sebagai kelengkapan administrasi, bersama surat ini kami lampirkan:</div>
+      <ol class="lampiran-list" id="pv-lampiranList"></ol>
+
+      <div class="body-text">Apabila terdapat kekurangan dokumen atau data yang diperlukan, mohon dapat menghubungi kami melalui kontak yang tercantum pada kop surat, atau melalui kontak salesman kami.</div>
+
+      <div class="body-text">Demikian surat permohonan pembayaran ini kami sampaikan. Atas perhatian dan kerja sama Bapak/Ibu, kami ucapkan terima kasih.</div>
+
+      <div class="sign-block">
+        <div>Hormat kami,</div>
+        <div><b>PT. Aston Graphindo Indonesia</b></div>
+        <div class="sign-space" id="signSpace"></div>
+        <div><b><u id="pv-namaTtd"></u></b></div>
+        <div id="pv-jabatanTtd"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL RIWAYAT SURAT ============ -->
+<div class="modal-overlay" id="historyModal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>🕘 Riwayat Surat</h2>
+      <button class="modal-close" id="closeHistoryBtn" type="button">✕</button>
+    </div>
+    <div class="modal-body" id="historyListContainer"></div>
+    <div class="modal-footer">
+      <button class="btn-small" id="clearHistoryBtn" type="button">Hapus semua riwayat</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const ROMAN = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
+  const BULAN_ID = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+
+  // ---------- Terbilang (Indonesian number to words) ----------
+  const SATUAN = ["", "satu","dua","tiga","empat","lima","enam","tujuh","delapan","sembilan",
+    "sepuluh","sebelas","dua belas","tiga belas","empat belas","lima belas","enam belas",
+    "tujuh belas","delapan belas","sembilan belas"];
+
+  function tigaAngka(n){
+    n = Math.floor(n);
+    let s = "";
+    if (n >= 100){
+      const r = Math.floor(n/100);
+      s += (r === 1 ? "seratus" : SATUAN[r] + " ratus") + " ";
+      n %= 100;
+    }
+    if (n > 0){
+      if (n < 20){
+        s += SATUAN[n];
+      } else {
+        const puluh = Math.floor(n/10);
+        const sisa = n % 10;
+        s += SATUAN[puluh] + " puluh" + (sisa > 0 ? " " + SATUAN[sisa] : "");
+      }
+    }
+    return s.trim();
+  }
+
+  function terbilang(num){
+    num = Math.floor(Math.abs(num));
+    if (num === 0) return "nol";
+    const units = [
+      { value: 1000000000000, label: "triliun" },
+      { value: 1000000000, label: "miliar" },
+      { value: 1000000, label: "juta" },
+      { value: 1000, label: "ribu" },
+    ];
+    let sisa = num;
+    let parts = [];
+    for (const u of units){
+      const count = Math.floor(sisa / u.value);
+      if (count > 0){
+        if (u.label === "ribu" && count === 1){
+          parts.push("seribu");
+        } else {
+          parts.push(tigaAngka(count) + " " + u.label);
+        }
+        sisa %= u.value;
+      }
+    }
+    if (sisa > 0){
+      parts.push(tigaAngka(sisa));
+    }
+    let result = parts.join(" ").replace(/\s+/g," ").trim();
+    // capitalize first letter of each word for display style used in the letter (Title Case)
+    return result;
+  }
+
+  function toTitleCase(str){
+    return str.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  }
+
+  function formatRupiah(n){
+    if (isNaN(n)) return "";
+    return "Rp " + Number(n).toLocaleString("id-ID") + ",-";
+  }
+
+  function formatTanggalPanjang(dateStr){
+    if (!dateStr) return "";
+    const d = new Date(dateStr + "T00:00:00");
+    if (isNaN(d.getTime())) return "";
+    return d.getDate() + " " + BULAN_ID[d.getMonth()] + " " + d.getFullYear();
+  }
+
+  // ---------- Elements ----------
+  const el = id => document.getElementById(id);
+  const ids = ["kopHeight","noSurat","tglSurat","kota","jabatanPenerima","namaInstansi","uraianPekerjaan",
+    "jenisDasar","nomorDasar","tglDasar","nilai","namaBank","noRek","atasNama","namaTtd","jabatanTtd","pakaiMeterai"];
+
+  let customLampiran = [];
+  let letterState = {};
+
+  function placeholderOr(val, ph){
+    const v = (val || "").trim();
+    if (!v) return `<span class="placeholder">[${ph}]</span>`;
+    return escapeHtml(v);
+  }
+  function escapeHtml(s){
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function render(){
+    const kopHeightVal = parseFloat(el("kopHeight").value) || 27;
+    el("kopSpace").style.height = kopHeightVal + "mm";
+    const pakaiMeteraiVal = el("pakaiMeterai").checked;
+    const signSpaceMm = pakaiMeteraiVal ? 30 : 10;
+    el("signSpace").style.height = signSpaceMm + "mm";
+    const noSurat = el("noSurat").value.trim() || "___";
+    const tglSurat = el("tglSurat").value;
+    const kota = el("kota").value.trim() || "___";
+    const jabatanPenerima = el("jabatanPenerima").value.trim();
+    const namaInstansi = el("namaInstansi").value.trim();
+    const uraian = el("uraianPekerjaan").value.trim();
+    const jenisDasar = el("jenisDasar").value;
+    const nomorDasar = el("nomorDasar").value.trim();
+    const tglDasar = el("tglDasar").value;
+    const nilaiRaw = el("nilai").value;
+    const namaBank = el("namaBank").value.trim();
+    const noRek = el("noRek").value.trim();
+    const atasNama = el("atasNama").value.trim();
+    const namaTtd = el("namaTtd").value.trim();
+    const jabatanTtd = el("jabatanTtd").value.trim();
+
+    // Nomor surat
+    let bulanRomawi = "___", tahun = "____";
+    let tanggalDisplay = `<span class="placeholder">[Tanggal Surat]</span>`;
+    if (tglSurat){
+      const d = new Date(tglSurat + "T00:00:00");
+      bulanRomawi = ROMAN[d.getMonth()];
+      tahun = d.getFullYear();
+      tanggalDisplay = escapeHtml(kota) + ", " + formatTanggalPanjang(tglSurat);
+    } else {
+      tanggalDisplay = escapeHtml(kota) + ", " + `<span class="placeholder">[Tanggal Surat]</span>`;
+    }
+    const nomorLengkap = `${escapeHtml(noSurat)}/Perm.Bayar-FA/AGI/${bulanRomawi}/${tahun}`;
+    el("pv-nomor").innerHTML = nomorLengkap;
+    el("pv-tanggal").innerHTML = tanggalDisplay;
+    el("nomorPreviewHint").textContent = "Nomor lengkap: " + nomorLengkap.replace(/<[^>]+>/g,"");
+
+    // Tujuan
+    el("pv-jabatanPenerima").innerHTML = placeholderOr(jabatanPenerima, "Jabatan Penerima, mis. Kepala/Bendahara/Kuasa Pengguna Anggaran");
+    el("pv-namaInstansi1").innerHTML = placeholderOr(namaInstansi, "Nama Instansi/Satuan Kerja");
+
+    // Body intro
+    const dasarText = tglDasar ? formatTanggalPanjang(tglDasar) : `<span class="placeholder">[Tanggal Dokumen]</span>`;
+    const nomorDasarText = nomorDasar ? escapeHtml(nomorDasar) : `<span class="placeholder">[Nomor Dokumen]</span>`;
+    const uraianText = uraian ? escapeHtml(uraian) : `<span class="placeholder">[Uraian Pekerjaan/Barang]</span>`;
+    const namaInstansiText = namaInstansi ? escapeHtml(namaInstansi) : `<span class="placeholder">[Nama Instansi/Satuan Kerja]</span>`;
+    el("pv-bodyIntro").innerHTML =
+      `Sehubungan dengan telah selesainya pelaksanaan pekerjaan <b>${uraianText}</b> untuk <b>${namaInstansiText}</b> ` +
+      `berdasarkan <b>${jenisDasar} Nomor ${nomorDasarText} tanggal ${dasarText}</b>, bersama ini kami <b>PT. Aston Graphindo Indonesia</b> ` +
+      `bermaksud mengajukan permohonan pembayaran atas pekerjaan tersebut dengan rincian sebagai berikut:`;
+
+    // Nilai & terbilang
+    const nilaiNum = parseFloat(nilaiRaw);
+    if (nilaiRaw && !isNaN(nilaiNum) && nilaiNum > 0){
+      el("pv-nilai").innerHTML = "<b>" + formatRupiah(nilaiNum) + "</b>";
+      const kata = toTitleCase(terbilang(nilaiNum)) + " Rupiah";
+      el("pv-terbilang").innerHTML = "<i><b>" + kata + "</b></i>";
+      el("terbilangBox").textContent = kata;
+    } else {
+      el("pv-nilai").innerHTML = `<span class="placeholder">[Nominal]</span>`;
+      el("pv-terbilang").innerHTML = `<i><span class="placeholder">[Nilai dalam huruf]</span></i>`;
+      el("terbilangBox").textContent = "— isi nominal untuk melihat terbilang —";
+    }
+
+    // Baris "Potongan" hanya muncul jika nilai pekerjaan lebih dari Rp 2.000.000
+    const showPotongan = !(nilaiRaw && !isNaN(nilaiNum) && nilaiNum <= 2000000);
+    el("pv-potonganRow").style.display = showPotongan ? "" : "none";
+
+    // Rekening
+    el("pv-namaBank").textContent = namaBank || "—";
+    el("pv-noRek").textContent = noRek || "—";
+    el("pv-atasNama").textContent = atasNama || "—";
+
+    // Lampiran
+    const checked = Array.from(document.querySelectorAll("#lampiranChecks input:checked")).map(i => i.value);
+    const allLampiran = [...checked, ...customLampiran];
+    el("pv-lampiranCount").textContent = allLampiran.length > 0
+      ? `${allLampiran.length} (${terbilangKecil(allLampiran.length)}) berkas`
+      : "1 (satu) berkas";
+    const list = el("pv-lampiranList");
+    list.innerHTML = "";
+    allLampiran.forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = item;
+      list.appendChild(li);
+    });
+
+    // Signature
+    el("pv-namaTtd").textContent = namaTtd || "___________";
+    el("pv-jabatanTtd").textContent = jabatanTtd || "";
+
+    // Snapshot untuk export Word (memakai fragment HTML yang sama persis dengan pratinjau)
+    letterState = {
+      kopHeightMm: kopHeightVal,
+      nomorLengkapHtml: nomorLengkap,
+      lampiranCountHtml: el("pv-lampiranCount").textContent,
+      tanggalHtml: tanggalDisplay,
+      jabatanPenerimaHtml: placeholderOr(jabatanPenerima, "Jabatan Penerima, mis. Kepala/Bendahara/Kuasa Pengguna Anggaran"),
+      namaInstansiHtml: placeholderOr(namaInstansi, "Nama Instansi/Satuan Kerja"),
+      bodyIntroHtml: el("pv-bodyIntro").innerHTML,
+      nilaiHtml: el("pv-nilai").innerHTML,
+      terbilangHtml: el("pv-terbilang").innerHTML,
+      showPotongan: showPotongan,
+      signSpaceMm: signSpaceMm,
+      namaBank: namaBank || "—",
+      noRek: noRek || "—",
+      atasNama: atasNama || "—",
+      lampiranList: allLampiran.slice(),
+      namaTtd: namaTtd || "___________",
+      jabatanTtd: jabatanTtd || ""
+    };
+
+    renderCustomLampiranList();
+    saveDefaults();
+  }
+
+  function terbilangKecil(n){
+    const map = {1:"satu",2:"dua",3:"tiga",4:"empat",5:"lima",6:"enam",7:"tujuh",8:"delapan",9:"sembilan",10:"sepuluh"};
+    return map[n] || n;
+  }
+
+  function renderCustomLampiranList(){
+    const container = el("customLampiranList");
+    container.innerHTML = "";
+    customLampiran.forEach((item, idx) => {
+      const row = document.createElement("div");
+      row.className = "row";
+      row.innerHTML = `<span>${escapeHtml(item)}</span><button type="button" data-idx="${idx}">Hapus</button>`;
+      container.appendChild(row);
+    });
+    container.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        customLampiran.splice(parseInt(btn.dataset.idx), 1);
+        render();
+      });
+    });
+  }
+
+  // ---------- Events ----------
+  ids.forEach(id => {
+    const node = el(id);
+    node.addEventListener("input", render);
+    node.addEventListener("change", render);
+  });
+  document.querySelectorAll("#lampiranChecks input").forEach(cb => cb.addEventListener("change", render));
+
+  el("addLampiranBtn").addEventListener("click", () => {
+    const input = el("customLampiranInput");
+    const val = input.value.trim();
+    if (val){
+      customLampiran.push(val);
+      input.value = "";
+      render();
+    }
+  });
+  el("customLampiranInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter"){
+      e.preventDefault();
+      el("addLampiranBtn").click();
+    }
+  });
+
+  function updateSignerFromSelect(){
+    const val = el("penandatanganSelect").value;
+    const customRow = el("customSignerRow");
+    if (val === "__custom__"){
+      customRow.style.display = "grid";
+      el("namaTtd").value = el("namaTtdCustom").value.trim();
+      el("jabatanTtd").value = el("jabatanTtdCustom").value.trim();
+    } else {
+      customRow.style.display = "none";
+      const [nama, jabatan] = val.split("|");
+      el("namaTtd").value = nama;
+      el("jabatanTtd").value = jabatan;
+    }
+    render();
+  }
+
+  el("penandatanganSelect").addEventListener("change", updateSignerFromSelect);
+  el("namaTtdCustom").addEventListener("input", updateSignerFromSelect);
+  el("jabatanTtdCustom").addEventListener("input", updateSignerFromSelect);
+
+  function syncPenandatanganSelect(){
+    const select = el("penandatanganSelect");
+    const combo = el("namaTtd").value + "|" + el("jabatanTtd").value;
+    const found = Array.from(select.options).some(o => o.value === combo && o.value !== "__custom__");
+    if (found){
+      select.value = combo;
+      el("customSignerRow").style.display = "none";
+    } else {
+      select.value = "__custom__";
+      el("customSignerRow").style.display = "grid";
+      el("namaTtdCustom").value = el("namaTtd").value;
+      el("jabatanTtdCustom").value = el("jabatanTtd").value;
+    }
+  }
+
+  const ORIGINAL_TITLE = document.title;
+  function withPrintTitle(fn){
+    const noSuratLengkap = (letterState.nomorLengkapHtml || "").replace(/<[^>]+>/g, "");
+    document.title = noSuratLengkap ? `Surat Permohonan Pembayaran - ${noSuratLengkap}` : ORIGINAL_TITLE;
+    fn();
+    setTimeout(() => { document.title = ORIGINAL_TITLE; }, 1000);
+  }
+
+  el("printBtn").addEventListener("click", () => {
+    addHistoryEntry("PDF");
+    withPrintTitle(() => window.print());
+  });
+
+  el("wordBtn").addEventListener("click", () => {
+    exportWord();
+    addHistoryEntry("Word");
+  });
+
+  el("historyBtn").addEventListener("click", () => {
+    renderHistoryList();
+    el("historyModal").style.display = "flex";
+  });
+  el("closeHistoryBtn").addEventListener("click", () => { el("historyModal").style.display = "none"; });
+  el("historyModal").addEventListener("click", (e) => {
+    if (e.target.id === "historyModal") el("historyModal").style.display = "none";
+  });
+  el("clearHistoryBtn").addEventListener("click", () => {
+    if (confirm("Hapus semua riwayat surat? Tindakan ini tidak bisa dibatalkan.")){
+      saveHistory([]);
+      renderHistoryList();
+    }
+  });
+
+  el("resetBtn").addEventListener("click", () => {
+    ["noSurat","tglSurat","jabatanPenerima","namaInstansi","uraianPekerjaan","nomorDasar","tglDasar","nilai"].forEach(id => el(id).value = "");
+    el("noSurat").value = "070";
+    el("jenisDasar").value = "Purchase Order";
+    el("pakaiMeterai").checked = true;
+    customLampiran = [];
+    render();
+  });
+
+  // ---------- Persist company defaults (bank, signer, kop) & riwayat surat ----------
+  // Catatan: window.storage hanya tersedia di sandbox artifact Claude.
+  // Karena file ini akan di-hosting sendiri (server lokal), semua penyimpanan
+  // memakai localStorage bawaan browser (bertahan setelah refresh/tutup-buka,
+  // selama diakses dari domain/origin yang sama).
+  const LS_DEFAULTS_KEY = "suratAGI_defaults_v1";
+  const LS_HISTORY_KEY = "suratAGI_riwayat_v1";
+  const DEFAULT_KEYS = ["namaBank","noRek","atasNama","namaTtd","jabatanTtd","kota","kopHeight"];
+
+  function loadDefaults(){
+    try {
+      const raw = localStorage.getItem(LS_DEFAULTS_KEY);
+      if (raw){
+        const data = JSON.parse(raw);
+        DEFAULT_KEYS.forEach(k => { if (data[k] !== undefined) el(k).value = data[k]; });
+      }
+    } catch (e) {
+      // tidak ada data tersimpan / localStorage tidak tersedia — pakai nilai bawaan
+    }
+    syncPenandatanganSelect();
+    render();
+    renderHistoryList();
+  }
+
+  let saveTimer = null;
+  function saveDefaults(){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      try {
+        const data = {};
+        DEFAULT_KEYS.forEach(k => data[k] = el(k).value);
+        localStorage.setItem(LS_DEFAULTS_KEY, JSON.stringify(data));
+      } catch (e) {
+        // localStorage tidak tersedia — aman diabaikan, hanya tidak tersimpan
+      }
+    }, 400);
+  }
+
+  // ---------- Riwayat Surat ----------
+  function loadHistory(){
+    try {
+      const raw = localStorage.getItem(LS_HISTORY_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveHistory(list){
+    try {
+      localStorage.setItem(LS_HISTORY_KEY, JSON.stringify(list));
+    } catch (e) {
+      // localStorage penuh/tidak tersedia — riwayat baru tidak akan tersimpan
+    }
+  }
+
+  function buildSuggestedFilename(format){
+    const noSurat = el("noSurat").value.trim() || "surat";
+    const tgl = el("tglSurat").value || "";
+    const ext = format === "Word" ? "doc" : "pdf";
+    return `Surat_Permohonan_Pembayaran_${sanitizeFilename(noSurat)}${tgl ? "_" + tgl : ""}.${ext}`;
+  }
+
+  function captureFormSnapshot(){
+    const lampiranChecks = Array.from(document.querySelectorAll("#lampiranChecks input")).map(cb => ({
+      value: cb.value, checked: cb.checked
+    }));
+    return {
+      kopHeight: el("kopHeight").value,
+      noSurat: el("noSurat").value,
+      tglSurat: el("tglSurat").value,
+      kota: el("kota").value,
+      jabatanPenerima: el("jabatanPenerima").value,
+      namaInstansi: el("namaInstansi").value,
+      uraianPekerjaan: el("uraianPekerjaan").value,
+      jenisDasar: el("jenisDasar").value,
+      nomorDasar: el("nomorDasar").value,
+      tglDasar: el("tglDasar").value,
+      nilai: el("nilai").value,
+      namaBank: el("namaBank").value,
+      noRek: el("noRek").value,
+      atasNama: el("atasNama").value,
+      penandatanganSelect: el("penandatanganSelect").value,
+      namaTtd: el("namaTtd").value,
+      jabatanTtd: el("jabatanTtd").value,
+      namaTtdCustom: el("namaTtdCustom").value,
+      jabatanTtdCustom: el("jabatanTtdCustom").value,
+      pakaiMeterai: el("pakaiMeterai").checked,
+      lampiranChecks,
+      customLampiran: customLampiran.slice()
+    };
+  }
+
+  function restoreFormSnapshot(data){
+    if (!data) return;
+    const setVal = (id, v) => { if (v !== undefined) el(id).value = v; };
+    ["kopHeight","noSurat","tglSurat","kota","jabatanPenerima","namaInstansi","uraianPekerjaan",
+     "jenisDasar","nomorDasar","tglDasar","nilai","namaBank","noRek","atasNama"].forEach(k => setVal(k, data[k]));
+
+    el("pakaiMeterai").checked = data.pakaiMeterai !== undefined ? data.pakaiMeterai : true;
+
+    if (data.lampiranChecks){
+      data.lampiranChecks.forEach(item => {
+        const cb = document.querySelector(`#lampiranChecks input[value="${CSS.escape(item.value)}"]`);
+        if (cb) cb.checked = item.checked;
+      });
+    }
+    customLampiran = data.customLampiran ? data.customLampiran.slice() : [];
+
+    if (data.penandatanganSelect === "__custom__"){
+      el("penandatanganSelect").value = "__custom__";
+      el("namaTtdCustom").value = data.namaTtdCustom || data.namaTtd || "";
+      el("jabatanTtdCustom").value = data.jabatanTtdCustom || data.jabatanTtd || "";
+    } else {
+      el("penandatanganSelect").value = data.penandatanganSelect || "Agung Jayadi|Finance";
+    }
+    updateSignerFromSelect();
+    render();
+  }
+
+  function addHistoryEntry(format){
+    const list = loadHistory();
+    const nilaiNum = parseFloat(el("nilai").value);
+    const entry = {
+      id: Date.now() + "-" + Math.random().toString(36).slice(2, 7),
+      savedAt: new Date().toISOString(),
+      format,
+      noSuratLengkap: (letterState.nomorLengkapHtml || "").replace(/<[^>]+>/g, ""),
+      namaInstansi: el("namaInstansi").value.trim() || "(belum diisi)",
+      jabatanPenerima: el("jabatanPenerima").value.trim(),
+      nilai: isNaN(nilaiNum) ? null : nilaiNum,
+      namaTtd: el("namaTtd").value,
+      jabatanTtd: el("jabatanTtd").value,
+      filename: buildSuggestedFilename(format),
+      formData: captureFormSnapshot()
+    };
+    list.unshift(entry);
+    saveHistory(list);
+    renderHistoryList();
+  }
+
+  function renderHistoryList(){
+    const container = el("historyListContainer");
+    if (!container) return;
+    const list = loadHistory();
+    if (list.length === 0){
+      container.innerHTML = '<div class="history-empty">Belum ada riwayat surat. Riwayat otomatis tersimpan setiap kali Anda menekan tombol Cetak/Simpan PDF atau Simpan Word.</div>';
+      return;
+    }
+    container.innerHTML = list.map(entry => {
+      const tglObj = new Date(entry.savedAt);
+      const tglText = isNaN(tglObj.getTime()) ? "-" : tglObj.toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
+      const nilaiText = entry.nilai ? formatRupiah(entry.nilai) : "-";
+      return `
+        <div class="history-item" data-id="${entry.id}">
+          <div class="info">
+            <div class="h-title">${escapeHtml(entry.noSuratLengkap || "(tanpa nomor)")}<span class="badge">${escapeHtml(entry.format)}</span></div>
+            <div class="h-meta">${escapeHtml(entry.namaInstansi || "-")} &middot; ${nilaiText}</div>
+            <div class="h-meta">Penandatangan: ${escapeHtml(entry.namaTtd)} - ${escapeHtml(entry.jabatanTtd)}</div>
+            <div class="h-meta">Disimpan: ${tglText}</div>
+            <div class="h-meta">Nama file: ${escapeHtml(entry.filename)}</div>
+          </div>
+          <div class="actions-col">
+            <button class="btn-small load-btn" data-id="${entry.id}" type="button">Muat ke Form</button>
+            <button class="btn-small delete-btn" data-id="${entry.id}" type="button">Hapus</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    container.querySelectorAll(".load-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const entry = loadHistory().find(x => x.id === btn.dataset.id);
+        if (entry){
+          restoreFormSnapshot(entry.formData);
+          el("historyModal").style.display = "none";
+        }
+      });
+    });
+    container.querySelectorAll(".delete-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const list2 = loadHistory().filter(x => x.id !== btn.dataset.id);
+        saveHistory(list2);
+        renderHistoryList();
+      });
+    });
+  }
+
+  // ---------- Export sebagai Word (.doc) ----------
+  function buildWordDocument(){
+    const s = letterState;
+    const lampiranItems = (s.lampiranList || []).map(item =>
+      `<li style="margin-bottom:2px;">${escapeHtml(item)}</li>`
+    ).join("");
+
+    const bodyHtml = `
+<p style="margin:0; line-height:${s.kopHeightMm}mm; mso-line-height-rule:exactly;">&nbsp;</p>
+
+<table style="width:100%; border-collapse:collapse; margin-bottom:14px;">
+  <tr>
+    <td style="vertical-align:top; width:72%; padding:0;">
+      <table style="border-collapse:collapse;">
+        <tr><td style="width:85px; padding:0 0 2px 0;">Nomor</td><td style="width:12px; padding:0 0 2px 0;">:</td><td style="padding:0 0 2px 0;">${s.nomorLengkapHtml}</td></tr>
+        <tr><td style="padding:0 0 2px 0;">Lampiran</td><td style="padding:0 0 2px 0;">:</td><td style="padding:0 0 2px 0;">${s.lampiranCountHtml}</td></tr>
+        <tr><td style="padding:0;">Perihal</td><td style="padding:0;">:</td><td style="padding:0;"><b><u>Permohonan Pembayaran</u></b></td></tr>
+      </table>
+    </td>
+    <td style="vertical-align:top; text-align:right; white-space:nowrap; padding:0;">${s.tanggalHtml}</td>
+  </tr>
+</table>
+
+<div style="margin-bottom:18px;">
+  <div>Kepada Yth.</div>
+  <div><b>${s.jabatanPenerimaHtml}</b></div>
+  <div><b>${s.namaInstansiHtml}</b></div>
+  <div>di Tempat</div>
+</div>
+
+<p style="text-align:justify; margin:0 0 11px 0;">Dengan hormat,</p>
+<p style="text-align:justify; margin:0 0 11px 0;">${s.bodyIntroHtml}</p>
+
+<table style="width:100%; border-collapse:collapse; margin-bottom:11px;">
+  <tr><td style="width:34%; padding:1.5px 0; vertical-align:top;">Nilai Pekerjaan</td><td style="width:14px; padding:1.5px 0;">:</td><td style="padding:1.5px 0;">${s.nilaiHtml}</td></tr>
+  <tr><td style="padding:1.5px 0; vertical-align:top;">Terbilang</td><td style="padding:1.5px 0;">:</td><td style="padding:1.5px 0;">${s.terbilangHtml}</td></tr>
+  ${s.showPotongan ? '<tr><td style="padding:1.5px 0; vertical-align:top;">Potongan</td><td style="padding:1.5px 0;">:</td><td style="padding:1.5px 0;">Pajak-pajak sesuai ketentuan yang berlaku</td></tr>' : ''}
+</table>
+
+<p style="text-align:justify; margin:0 0 11px 0;">Pembayaran kami mohon untuk dapat ditransfer melalui rekening berikut:</p>
+
+<table style="width:100%; border-collapse:collapse; margin-bottom:11px;">
+  <tr><td style="width:34%; padding:1.5px 0; vertical-align:top;">Nama Bank</td><td style="width:14px; padding:1.5px 0;">:</td><td style="padding:1.5px 0;">${escapeHtml(s.namaBank)}</td></tr>
+  <tr><td style="padding:1.5px 0; vertical-align:top;">Nomor Rekening</td><td style="padding:1.5px 0;">:</td><td style="padding:1.5px 0;">${escapeHtml(s.noRek)}</td></tr>
+  <tr><td style="padding:1.5px 0; vertical-align:top;">Atas Nama</td><td style="padding:1.5px 0;">:</td><td style="padding:1.5px 0;">${escapeHtml(s.atasNama)}</td></tr>
+</table>
+
+<p style="text-align:justify; margin:0 0 11px 0;">Pembayaran juga dapat dilakukan melalui rekening kami yang lain yang tercantum pada Kuitansi.</p>
+
+<p style="text-align:justify; margin:0 0 11px 0;">Sebagai kelengkapan administrasi, bersama surat ini kami lampirkan:</p>
+<ol style="margin:0 0 11px 0; padding-left:20px;">${lampiranItems}</ol>
+
+<p style="text-align:justify; margin:0 0 11px 0;">Apabila terdapat kekurangan dokumen atau data yang diperlukan, mohon dapat menghubungi kami melalui kontak yang tercantum pada kop surat, atau melalui kontak salesman kami.</p>
+
+<p style="text-align:justify; margin:0 0 11px 0;">Demikian surat permohonan pembayaran ini kami sampaikan. Atas perhatian dan kerja sama Bapak/Ibu, kami ucapkan terima kasih.</p>
+
+<div style="margin-top:18px;">
+  <div>Hormat kami,</div>
+  <div><b>PT. Aston Graphindo Indonesia</b></div>
+  <p style="margin:0; line-height:${s.signSpaceMm}mm; mso-line-height-rule:exactly;">&nbsp;</p>
+  <div><b><u>${escapeHtml(s.namaTtd)}</u></b></div>
+  <div>${escapeHtml(s.jabatanTtd)}</div>
+</div>`;
+
+    return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<title>Surat Permohonan Pembayaran</title>
+<!--[if gte mso 9]>
+<xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml>
+<![endif]-->
+<style>
+@page Section1{ size:21.0cm 29.7cm; margin:1.5cm 1.8cm 1.5cm 1.8cm; }
+div.Section1{ page:Section1; }
+body{ font-family:"Times New Roman", Times, serif; font-size:12pt; color:#111111; line-height:1.45; }
+.placeholder{ color:#b8391f; }
+</style>
+</head>
+<body>
+<div class="Section1">
+${bodyHtml}
+</div>
+</body>
+</html>`;
+  }
+
+  function sanitizeFilename(s){
+    return (s || "").toString().trim().replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, "_");
+  }
+
+  function exportWord(){
+    const html = buildWordDocument();
+    const blob = new Blob(['\ufeff', html], { type: "application/msword" });
+    const filename = buildSuggestedFilename("Word");
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  // Default tanggal surat = today
+  (function initDate(){
+    const today = new Date();
+    const iso = today.toISOString().slice(0,10);
+    el("tglSurat").value = iso;
+  })();
+
+  loadDefaults();
+})();
+</script>
+
+</body>
+</html>

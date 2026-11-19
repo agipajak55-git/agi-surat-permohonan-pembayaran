@@ -78,26 +78,24 @@
                 </tr>
             </table>
 
-            <!-- Ruang Jarak Antara Header & Tujuan -->
             <div style="height: 14px;"></div>
 
-            <!-- Kepada Yth (Tujuan Block) -->
-            <div style="margin-bottom: 18px; line-height: 1.45;">
+            <!-- Tujuan Surat: Kepada Yth. -->
+            <div style="margin-bottom: 18px; font-size: 12pt;">
                 <div>Kepada Yth.</div>
                 <div><b><span t-esc="jabatan_penerima"/></b></div>
                 <div><b><span t-esc="nama_instansi"/></b></div>
                 <div>di Tempat</div>
             </div>
 
-            <!-- Body Text: Dengan hormat -->
+            <!-- Body Text: Dengan hormat & Paragraf Pembuka -->
             <div style="text-align: justify; margin-bottom: 11px;">Dengan hormat,</div>
 
-            <!-- Body Text: Paragraf Intro -->
             <div style="text-align: justify; margin-bottom: 11px;">
-                Sehubungan dengan telah selesainya pelaksanaan pekerjaan <b><span t-esc="uraian_pekerjaan"/></b> untuk <b><span t-esc="nama_instansi"/></b> berdasarkan <b><span t-esc="dasar['jenis']"/> Nomor <span t-esc="dasar['nomor']"/> tanggal <span t-esc="dasar['tanggal']"/></b>, bersama ini kami <b><span t-esc="doc.company_id.name or 'PT. Aston Graphindo Indonesia'"/></b> bermaksud mengajukan permohonan pembayaran atas pekerjaan tersebut dengan rincian sebagai berikut:
+                Sehubungan dengan telah selesainya pelaksanaan pekerjaan <b><span t-esc="uraian_pekerjaan"/></b> untuk <b><span t-esc="nama_instansi"/></b> berdasarkan <b><span t-esc="dasar['jenis']"/> Nomor <span t-esc="dasar['nomor']"/> tanggal <span t-esc="dasar['tanggal']"/></b>, bersama ini kami <b>PT. Aston Graphindo Indonesia</b> bermaksud mengajukan permohonan pembayaran atas pekerjaan tersebut dengan rincian sebagai berikut:
             </div>
 
-            <!-- Tabel Letter Table -->
+            <!-- Tabel Nilai Pekerjaan -->
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 11px;">
                 <tr>
                     <td style="width: 34%; padding: 1.5px 0; vertical-align: top; font-size: 12pt;">Nilai Pekerjaan</td>
@@ -113,7 +111,8 @@
                         <i><b><span t-esc="terbilang_total"/></b></i>
                     </td>
                 </tr>
-                <tr t-if="(doc.amount_total or 0) > 2000000">
+                <!-- Baris Potongan Pajak dikendalikan oleh checkbox lampirkan_faktur_pajak -->
+                <tr t-if="doc.lampirkan_faktur_pajak">
                     <td style="width: 34%; padding: 1.5px 0; vertical-align: top; font-size: 12pt;">Potongan</td>
                     <td style="width: 14px; padding: 1.5px 0; vertical-align: top; font-size: 12pt;">:</td>
                     <td style="padding: 1.5px 0; vertical-align: top; font-size: 12pt;">Pajak-pajak sesuai ketentuan yang berlaku</td>
@@ -168,8 +167,9 @@
             <div style="page-break-inside: avoid; margin-top: 18px;">
                 <div>Hormat kami,</div>
                 <div><b><span t-esc="doc.company_id.name or 'PT. Aston Graphindo Indonesia'"/></b></div>
-                <div style="height: 30mm;"></div>
+                <div t-attf-style="height: #{'30mm' if doc.pakai_meterai else '10mm'};"></div>
                 <div><b><u><span t-esc="signer['who_sign']"/></u></b></div>
+                <div><span t-esc="signer.get('jabatan', 'Finance')"/></div>
             </div>
         </div>
     </template>

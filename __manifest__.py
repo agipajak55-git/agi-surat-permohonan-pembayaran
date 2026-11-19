@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
 {
-    'name': 'Surat Permohonan Pembayaran Sales Order',
-    'version': '16.0.1.0.0',
+    'name': 'Surat Permohonan Pembayaran Sales Order (AGI)',
+    'version': '16.0.1.1.0',
     'category': 'Sales/Sales',
-    'summary': 'Cetak Surat Permohonan Pembayaran dari Sales Order (Odoo 16 Community)',
+    'summary': 'Cetak Surat Permohonan Pembayaran PT. Aston Graphindo Indonesia dari Sales Order (Odoo 16 Community)',
     'description': """
-Module Konversi Generator Surat Permohonan Pembayaran ke Odoo 16 Community
-==========================================================================
-Fitur:
-- Field Dasar Pekerjaan di tab Sales Order > Other Info.
-- Menambahkan tombol print "Surat Permohonan Pembayaran" di menu Sales Order (sale.order).
-- Penomoran otomatis format: [nomor SO]/Perm.Bayar-FA/AGI/[bulan print]/[tahun print]
-- Otomatis menghitung Terbilang dalam Bahasa Indonesia.
-- Format penomoran, layout surat, tabel rincian pembayaran, rekening bank, dan daftar lampiran presisi.
+Module Konversi Generator Surat Permohonan Pembayaran ke Odoo 16 Community - PT. Aston Graphindo Indonesia
+==========================================================================================================
+Revisi:
+- Mengambil tanggal surat & nomor surat (bulan romawi & tahun) dari field 'Tanggal Print' (tanggal_print).
+  Jika tanggal_print kosong, otomatis fallback ke tanggal hari ini.
+- Lampiran Faktur Pajak bersifat opsional via checkbox 'Lampirkan Faktur Pajak' pada Sales Order:
+  * Dicentang: 4 berkas (Invoice, Kuitansi, Faktur Pajak, Salinan dasar) & baris potongan pajak dimunculkan.
+  * Tidak dicentang: 3 berkas (tanpa Faktur Pajak) & baris potongan pajak disembunyikan.
+- Checkbox 'Pakai Meterai': mengatur jarak tanda tangan 30mm (pakai meterai) atau 10mm (tanpa meterai).
+- Penomoran otomatis format: [nomor SO]/Perm.Bayar-FA/AGI/[bulan romawi]/[tahun]
+- Terbilang otomatis Bahasa Indonesia (Rupiah).
+- Rincian Bank Mandiri KCP Solo Pasar Legi AGI, tata letak presisi sesuai kop surat & generator HTML.
     """,
     'author': 'PT. Aston Graphindo Indonesia',
     'website': 'https://www.astongraphindo.com',
@@ -29,5 +33,3 @@ Fitur:
     'application': False,
     'auto_install': False,
 }
-
-# Update: Add upgrade flag to force reload report action
