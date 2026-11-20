@@ -97,6 +97,69 @@ class SaleOrder(models.Model):
         help='Centang jika surat memerlukan ruang tempel meterai (30mm). Jika tidak, ruang tanda tangan 10mm.'
     )
 
+    def _default_penandatangan_surat(self):
+        user = self.env.user
+        if user and user.name and "anton" in user.name.lower():
+            return 'anton'
+        return 'agung'
+
+    def _default_nama_penandatangan(self):
+        user = self.env.user
+        if user and user.name and "anton" in user.name.lower():
+            return 'Anton Wijaya'
+        return 'Agung Jayadi'
+
+    def _default_jabatan_penandatangan(self):
+        user = self.env.user
+        if user and user.name and "anton" in user.name.lower():
+            return 'Direktur'
+        return 'Finance'
+
+    penandatangan_surat = fields.Selection([
+        ('agung', 'Agung Jayadi - Finance'),
+        ('anton', 'Anton Wijaya - Direktur'),
+        ('custom', 'Nama & Jabatan Lain (Custom)'),
+    ], string='Penanda Tangan', default=_default_penandatangan_surat,
+       help='Pilih penandatangan untuk Surat Permohonan Pembayaran.')
+
+    nama_penandatangan = fields.Char(
+        string='Nama Penanda Tangan',
+        default=_default_nama_penandatangan,
+        help='Nama yang akan tercetak pada tanda tangan surat.'
+    )
+
+    jabatan_penandatangan = fields.Char(
+        string='Jabatan Penanda Tangan',
+        default=_default_jabatan_penandatangan,
+        help='Jabatan yang akan tercetak di bawah nama penandatangan.'
+    )
+
+    @api.onchange('penandatangan_surat')
+    def _onchange_penandatangan_surat(self):
+        if self.penandatangan_surat == 'anton':
+            self.nama_penandatangan = "Anton Wijaya"
+            self.jabatan_penandatangan = "Direktur"
+        elif self.penandatangan_surat == 'agung':
+            self.nama_penandatangan = "Agung Jayadi"
+            self.jabatan_penandatangan = "Finance"
+        elif self.penandatangan_surat == 'custom':
+            if not self.nama_penandatangan or self.nama_penandatangan in ["Agung Jayadi", "Anton Wijaya"]:
+                self.nama_penandatangan = ""
+                self.jabatan_penandatangan = ""
+
+    @api.onchange('user_id')
+    def _onchange_user_id_penandatangan(self):
+        if self.user_id and self.user_id.name:
+            user_name_lower = self.user_id.name.lower()
+            if 'anton' in user_name_lower:
+                self.penandatangan_surat = 'anton'
+                self.nama_penandatangan = "Anton Wijaya"
+                self.jabatan_penandatangan = "Direktur"
+            elif 'agung' in user_name_lower:
+                self.penandatangan_surat = 'agung'
+                self.nama_penandatangan = "Agung Jayadi"
+                self.jabatan_penandatangan = "Finance"
+
     @api.onchange('amount_total')
     def _onchange_amount_total_faktur_pajak(self):
         """Otomatis memberi saran centang Faktur Pajak jika > 2jt, tetap dapat diubah manual kapan saja."""
@@ -200,7 +263,7 @@ class SaleOrder(models.Model):
         }
 
     def get_bank_info(self):
-        """Mengambil rekening bank AGI dengan fallback default Mandiri KCP Solo Pasar Legi."""
+        """Mengambil rekening bank AGI dengan fallback default Mandiri - KCP Solo Pasar Legi."""
         self.ensure_one()
         company = self.company_id
         bank_accounts = company.partner_id.bank_ids or self.env['res.partner.bank'].search([
@@ -210,31 +273,76 @@ class SaleOrder(models.Model):
         if bank_accounts:
             acc = bank_accounts[0]
             nama_bank = acc.bank_id.name if acc.bank_id else (acc.bank_name or "Mandiri")
-            nama_bank = nama_bank.replace("â€“", "-").replace("â€”", "-")
+            nama_bank = (nama_bank or "").replace("–", "-").replace("—", "-").replace("â€“", "-").replace("â€”", "-")
+            atas_nama = acc.acc_holder_name or company.name or "PT. Aston Graphindo Indonesia"
+            atas_nama = (atas_nama or "").replace("–", "-").replace("—", "-").replace("â€“", "-").replace("â€”", "-")
             return {
                 'nama_bank': nama_bank,
                 'no_rek': acc.acc_number or "-",
-                'atas_nama': acc.acc_holder_name or company.name or "PT. Aston Graphindo Indonesia"
+                'atas_nama': atas_nama
             }
         return {
-            'nama_bank': "Mandiri – KCP Solo Pasar Legi",
+            'nama_bank': "Mandiri - KCP Solo Pasar Legi",
             'no_rek': "138 00 0790783 0",
-            'atas_nama': "PT. Aston Graphindo Indonesia"
+            'atas_nama': company.name or "PT. Aston Graphindo Indonesia"
         }
 
     def get_penandatangan(self):
-        """Mengambil data penandatangan dari field who_sign, user_id, atau default Agung Jayadi."""
+        """
+        Mengambil data penandatangan dan jabatannya:
+        - Anton Wijaya -> Direktur
+        - Agung Jayadi -> Finance
+        - Custom -> nama & jabatan sesuai inputan manual
+        - Fallback: who_sign / user_id
+        """
         self.ensure_one()
-        sign_user = getattr(self, 'who_sign', False)
-        if sign_user:
-            nama = sign_user.name
+        nama = ""
+        jabatan = ""
+
+        if self.penandatangan_surat == 'anton':
+            nama = self.nama_penandatangan or "Anton Wijaya"
+            jabatan = self.jabatan_penandatangan or "Direktur"
+        elif self.penandatangan_surat == 'agung':
+            nama = self.nama_penandatangan or "Agung Jayadi"
+            jabatan = self.jabatan_penandatangan or "Finance"
+        elif self.penandatangan_surat == 'custom':
+            nama = self.nama_penandatangan or ""
+            jabatan = self.jabatan_penandatangan or ""
         else:
-            nama = (self.user_id and self.user_id.name) or "Agung Jayadi"
-        
+            if self.nama_penandatangan:
+                nama = self.nama_penandatangan
+                jabatan = self.jabatan_penandatangan
+            else:
+                sign_user = getattr(self, 'who_sign', False)
+                if sign_user and hasattr(sign_user, 'name') and sign_user.name:
+                    nama = sign_user.name
+                elif self.user_id and self.user_id.name:
+                    nama = self.user_id.name
+                else:
+                    nama = "Agung Jayadi"
+
+        # Deteksi pintar jabatan jika belum terisi
+        if not jabatan:
+            nama_lower = (nama or "").lower()
+            if "anton" in nama_lower:
+                jabatan = "Direktur"
+            elif "agung" in nama_lower:
+                jabatan = "Finance"
+            else:
+                job = False
+                if hasattr(self, 'user_id') and self.user_id and hasattr(self.user_id, 'partner_id') and self.user_id.partner_id and self.user_id.partner_id.function:
+                    job = self.user_id.partner_id.function
+                jabatan = job or "Finance"
+
+        if not nama:
+            nama = "Agung Jayadi"
+            if not jabatan:
+                jabatan = "Finance"
+
         return {
             'who_sign': nama,
             'nama': nama,
-            'jabatan': "Finance"
+            'jabatan': jabatan
         }
 
     def get_lampiran_info(self):

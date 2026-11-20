@@ -169,7 +169,7 @@
                 <div><b><span t-esc="doc.company_id.name or 'PT. Aston Graphindo Indonesia'"/></b></div>
                 <div t-attf-style="height: #{'30mm' if doc.pakai_meterai else '10mm'};"></div>
                 <div><b><u><span t-esc="signer['who_sign']"/></u></b></div>
-                <div><span t-esc="signer.get('jabatan', 'Finance')"/></div>
+                <div><span t-esc="signer.get('jabatan') or 'Finance'"/></div>
             </div>
         </div>
     </template>
