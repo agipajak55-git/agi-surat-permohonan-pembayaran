@@ -1,26 +1,27 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Surat Permohonan Pembayaran Sales Order (AGI)',
-    'version': '16.0.1.2.0',
+    'version': '16.0.1.3.0',
     'category': 'Sales/Sales',
     'summary': 'Cetak Surat Permohonan Pembayaran PT. Aston Graphindo Indonesia dari Sales Order (Odoo 16 Community)',
     'description': """
 Module Konversi Generator Surat Permohonan Pembayaran ke Odoo 16 Community - PT. Aston Graphindo Indonesia
 ==========================================================================================================
-Revisi 16.0.1.2.0:
-- Penyesuaian nama Bank Mandiri - KCP Solo Pasar Legi menggunakan karakter strip standar (-) agar tidak menjadi simbol tidak terbaca (â€“).
-- Pilihan penandatangan surat & jabatan dinamis pada Sales Order:
-  * Anton Wijaya - Direktur
-  * Agung Jayadi - Finance
-  * Pilihan Custom: dapat mengisi nama & jabatan penandatangan lain secara manual.
-- Mengambil tanggal surat & nomor surat (bulan romawi & tahun) dari field 'Tanggal Print' (tanggal_print).
-  Jika tanggal_print kosong, otomatis fallback ke tanggal hari ini.
-- Lampiran Faktur Pajak bersifat opsional via checkbox 'Lampirkan Faktur Pajak' pada Sales Order:
-  * Dicentang: 4 berkas (Invoice, Kuitansi, Faktur Pajak, Salinan dasar) & baris potongan pajak dimunculkan.
-  * Tidak dicentang: 3 berkas (tanpa Faktur Pajak) & baris potongan pajak disembunyikan.
-- Checkbox 'Pakai Meterai': mengatur jarak tanda tangan 30mm (pakai meterai) atau 10mm (tanpa meterai).
+Revisi 16.0.1.3.0:
+- Hapus field 'Pakai Meterai', ruang tanda tangan dibuat default 20mm.
+- Hapus field duplikat 'Penanda Tangan', disatukan ke field bawaan Odoo 'Ditandatangani Oleh' (who_sign).
+- Jabatan penandatangan otomatis diambil dari menu Employee (hr.employee) dengan singkatan departemen standar:
+  * Anton Wijaya -> Direktur
+  * Danar Susilo -> Manager HR & GA
+  * Agung Jayadi -> Staff Finance & Accounting
+  * Anwar Wijaya -> Manager SC, Prod & IT
+  * Hary Purwoko / Edy Poerwanto -> Supervisor SC, Prod & IT
+  * Tim SCM lain -> Staff SC, Prod & IT
+  * Tim HRD lain -> Staff HR & GA
+  * Tim Sales -> Staff Sales & Marketing
 - Penomoran otomatis format: [nomor SO]/Perm.Bayar-FA/AGI/[bulan romawi]/[tahun]
-- Terbilang otomatis Bahasa Indonesia (Rupiah).
+- Tanggal surat dapat disesuaikan lewat field 'Tanggal Print' (fallback ke tanggal hari ini).
+- Lampiran Faktur Pajak bersifat opsional via checkbox 'Lampirkan Faktur Pajak'.
     """,
     'author': 'PT. Aston Graphindo Indonesia',
     'website': 'https://www.astongraphindo.com',

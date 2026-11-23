@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import math
+import re
 from datetime import datetime, date
 from odoo import models, fields, api, _
 
@@ -90,75 +91,6 @@ class SaleOrder(models.Model):
         default=True,
         help='Centang jika surat permohonan pembayaran menyertakan lampiran Faktur Pajak dan rincian potongan.'
     )
-
-    pakai_meterai = fields.Boolean(
-        string='Pakai Meterai',
-        default=True,
-        help='Centang jika surat memerlukan ruang tempel meterai (30mm). Jika tidak, ruang tanda tangan 10mm.'
-    )
-
-    def _default_penandatangan_surat(self):
-        user = self.env.user
-        if user and user.name and "anton" in user.name.lower():
-            return 'anton'
-        return 'agung'
-
-    def _default_nama_penandatangan(self):
-        user = self.env.user
-        if user and user.name and "anton" in user.name.lower():
-            return 'Anton Wijaya'
-        return 'Agung Jayadi'
-
-    def _default_jabatan_penandatangan(self):
-        user = self.env.user
-        if user and user.name and "anton" in user.name.lower():
-            return 'Direktur'
-        return 'Finance'
-
-    penandatangan_surat = fields.Selection([
-        ('agung', 'Agung Jayadi - Finance'),
-        ('anton', 'Anton Wijaya - Direktur'),
-        ('custom', 'Nama & Jabatan Lain (Custom)'),
-    ], string='Penanda Tangan', default=_default_penandatangan_surat,
-       help='Pilih penandatangan untuk Surat Permohonan Pembayaran.')
-
-    nama_penandatangan = fields.Char(
-        string='Nama Penanda Tangan',
-        default=_default_nama_penandatangan,
-        help='Nama yang akan tercetak pada tanda tangan surat.'
-    )
-
-    jabatan_penandatangan = fields.Char(
-        string='Jabatan Penanda Tangan',
-        default=_default_jabatan_penandatangan,
-        help='Jabatan yang akan tercetak di bawah nama penandatangan.'
-    )
-
-    @api.onchange('penandatangan_surat')
-    def _onchange_penandatangan_surat(self):
-        if self.penandatangan_surat == 'anton':
-            self.nama_penandatangan = "Anton Wijaya"
-            self.jabatan_penandatangan = "Direktur"
-        elif self.penandatangan_surat == 'agung':
-            self.nama_penandatangan = "Agung Jayadi"
-            self.jabatan_penandatangan = "Finance"
-        elif self.penandatangan_surat == 'custom':
-            if not self.nama_penandatangan or self.nama_penandatangan in ["Agung Jayadi", "Anton Wijaya"]:
-                self.nama_penandatangan = ""
-                self.jabatan_penandatangan = ""
-
-    @api.onchange('user_id')
-    def _onchange_user_id_penandatangan(self):
-        if self.user_id and self.user_id.name:
-            user_name_lower = self.user_id.name.lower()
-            if 'anton' in user_name_lower:
-                self.penandatangan_surat = 'anton'
-                self.nama_penandatangan = "Anton Wijaya"
-                self.jabatan_penandatangan = "Direktur"
-            elif 'agung' in user_name_lower:
-                self.penandatangan_surat = 'agung'
-                self.nama_penandatangan = "Agung Jayadi"
-                self.jabatan_penandatangan = "Finance"
 
     @api.onchange('amount_total')
     def _onchange_amount_total_faktur_pajak(self):
@@ -289,61 +221,98 @@ class SaleOrder(models.Model):
 
     def get_penandatangan(self):
         """
-        Mengambil data penandatangan dan jabatannya:
+        Mengambil data penandatangan dari field `who_sign` (Ditandatangani Oleh) pada sale.order.
+        Jabatan disesuaikan otomatis mengikuti data Employee (hr.employee) dan aturan departemen/singkatan:
         - Anton Wijaya -> Direktur
-        - Agung Jayadi -> Finance
-        - Custom -> nama & jabatan sesuai inputan manual
-        - Fallback: who_sign / user_id
+        - Agung Jayadi -> Staff Finance & Accounting
+        - Ady Riyanto / Tim Sales -> Staff Sales & Marketing
+        - Anwar Wijaya -> Manager SC, Prod & IT
+        - Hary Purwoko / Edy Poerwanto -> Supervisor SC, Prod & IT
+        - Danar Susilo -> Manager HR & GA
+        - Tim SCM lain -> Staff SC, Prod & IT
+        - Tim HRD lain -> Staff HR & GA
         """
         self.ensure_one()
-        nama = ""
-        jabatan = ""
+        user = getattr(self, 'who_sign', False) or self.user_id or self.env.user
+        nama = user.name if user and user.name else "Anton Wijaya"
 
-        if self.penandatangan_surat == 'anton':
-            nama = self.nama_penandatangan or "Anton Wijaya"
-            jabatan = self.jabatan_penandatangan or "Direktur"
-        elif self.penandatangan_surat == 'agung':
-            nama = self.nama_penandatangan or "Agung Jayadi"
-            jabatan = self.jabatan_penandatangan or "Finance"
-        elif self.penandatangan_surat == 'custom':
-            nama = self.nama_penandatangan or ""
-            jabatan = self.jabatan_penandatangan or ""
-        else:
-            if self.nama_penandatangan:
-                nama = self.nama_penandatangan
-                jabatan = self.jabatan_penandatangan
-            else:
-                sign_user = getattr(self, 'who_sign', False)
-                if sign_user and hasattr(sign_user, 'name') and sign_user.name:
-                    nama = sign_user.name
-                elif self.user_id and self.user_id.name:
-                    nama = self.user_id.name
-                else:
-                    nama = "Agung Jayadi"
+        # Cari employee yang sesuai di hr.employee (gunakan sudo agar aman dari batasan akses hr.employee.public)
+        emp = False
+        emp_model = self.env['hr.employee'].sudo()
+        if user:
+            emp = emp_model.search([('user_id', '=', user.id), ('active', '=', True)], limit=1)
+            if not emp:
+                emp = emp_model.search([('user_id', '=', user.id)], limit=1)
+        if not emp and nama:
+            emp = emp_model.search([('name', '=ilike', nama.strip()), ('active', '=', True)], limit=1)
+            if not emp:
+                emp = emp_model.search([('name', 'ilike', nama.strip())], limit=1)
 
-        # Deteksi pintar jabatan jika belum terisi
-        if not jabatan:
-            nama_lower = (nama or "").lower()
-            if "anton" in nama_lower:
-                jabatan = "Direktur"
-            elif "agung" in nama_lower:
-                jabatan = "Finance"
-            else:
-                job = False
-                if hasattr(self, 'user_id') and self.user_id and hasattr(self.user_id, 'partner_id') and self.user_id.partner_id and self.user_id.partner_id.function:
-                    job = self.user_id.partner_id.function
-                jabatan = job or "Finance"
+        job_str = ""
+        dept_str = ""
+        if emp:
+            job_str = emp.job_id.name if emp.job_id else (emp.job_title or "")
+            dept_str = emp.department_id.name if emp.department_id else ""
 
-        if not nama:
-            nama = "Agung Jayadi"
-            if not jabatan:
-                jabatan = "Finance"
+        jabatan = self._format_jabatan_penandatangan(nama, job_str, dept_str)
 
         return {
             'who_sign': nama,
             'nama': nama,
             'jabatan': jabatan
         }
+
+    @api.model
+    def _format_jabatan_penandatangan(self, name, job_str="", dept_str=""):
+        name_l = (name or "").lower().strip()
+        job_l = (job_str or "").lower().strip()
+        dept_l = (dept_str or "").lower().strip()
+
+        # 1. Khusus Direktur / Anton Wijaya
+        if "anton" in name_l or "direktur" in job_l or "direksi" in dept_l:
+            return "Direktur"
+
+        # 2. Khusus Danar Susilo (di Odoo tertulis Supervisor, tapi di surat ini Manager HR & GA)
+        if "danar" in name_l:
+            return "Manager HR & GA"
+
+        # 3. Khusus Agung Jayadi
+        if "agung" in name_l:
+            return "Staff Finance & Accounting"
+
+        # 4. Khusus Anwar Wijaya
+        if "anwar" in name_l:
+            return "Manager SC, Prod & IT"
+
+        # 5. Khusus Hary / Harry Purwoko
+        if "purwoko" in name_l or re.search(r"\b(hary|harry)\b", name_l):
+            return "Supervisor SC, Prod & IT"
+
+        # 6. Khusus Ady Riyanto / Telesales
+        if "ady riyanto" in name_l or "ady isharyanto" in name_l:
+            return "Staff Sales & Marketing"
+
+        # Penentuan Level
+        if "manager" in job_l:
+            level = "Manager"
+        elif "supervisor" in job_l or "spv" in job_l:
+            level = "Supervisor"
+        else:
+            level = "Staff"
+
+        # Penentuan Singkatan Departemen
+        if "scm" in dept_l or "supply chain" in dept_l:
+            dept_short = "SC, Prod & IT"
+        elif "hr" in dept_l or "human" in dept_l:
+            dept_short = "HR & GA"
+        elif "finance" in dept_l or "akuntansi" in dept_l:
+            dept_short = "Finance & Accounting"
+        elif "sales" in dept_l or "marketing" in dept_l:
+            dept_short = "Sales & Marketing"
+        else:
+            dept_short = dept_str or ""
+
+        return f"{level} {dept_short}".strip() if dept_short else level
 
     def get_lampiran_info(self):
         """
